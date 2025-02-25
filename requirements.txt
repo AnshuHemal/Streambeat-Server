@@ -1,7 +1,5 @@
-Flask==2.2.2
-Flask-CORS==5.0.1
-pymongo==4.0.1
-matplotlib==3.6.0
-gunicorn==22.0.0
-itsdangerous==2.2.0
-Werkzeug==2.1.2
+Flask
+Flask-CORS
+pymongo
+matplotlib
+gunicorn
