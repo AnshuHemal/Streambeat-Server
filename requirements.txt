@@ -3,3 +3,5 @@ Flask-CORS==5.0.1
 pymongo==4.0.1
 matplotlib==3.6.0
 gunicorn==22.0.0
+itsdangerous==2.2.0
+Werkzeug==3.0.3
