@@ -2,4 +2,4 @@ Flask==2.2.2
 Flask-CORS==5.0.1
 pymongo==4.0.1
 matplotlib==3.6.0
-serverless-wsgi==1.7.0
+gunicorn==22.0.0
