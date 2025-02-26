@@ -13,7 +13,6 @@ import base64
 app = Flask(__name__)
 CORS(app)
 
-# MongoDB connection
 client = MongoClient("mongodb+srv://whiteturtle1:dvIw4evFuDVOzea3@cluster0.1e4vx.mongodb.net/sb_users?retryWrites=true&w=majority&appName=Cluster0")
 db = client["sb_users"]
 albums_collection = db['albums']
