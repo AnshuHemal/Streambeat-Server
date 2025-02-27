@@ -372,4 +372,4 @@ def get_user_logs(user_email):
         return jsonify({"error": f"An error occurred while fetching user logs: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
