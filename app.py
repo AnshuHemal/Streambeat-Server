@@ -45,23 +45,6 @@ def serialize_object_id(obj):
         return str(obj)
     return obj
 
-def deserialize_object_id(obj):
-    """
-    Recursively convert string back to ObjectId.
-    """
-    if isinstance(obj, dict):
-        return {key: deserialize_object_id(value) for key, value in obj.items()}
-    elif isinstance(obj, list):
-        return [deserialize_object_id(item) for item in obj]
-    elif isinstance(obj, str):
-        try:
-            # Try to convert string to ObjectId if it's in valid format
-            return ObjectId(obj)
-        except Exception as e:
-            # If the string is not a valid ObjectId, return it as is
-            return obj
-    return obj
-
 def generate_pie_chart(dictionary):
     labels = dictionary.keys()
     sizes = dictionary.values()
@@ -192,7 +175,6 @@ def fetch_and_cache_data(user_email):
                 is_popular = True
                 break
 
-        # Check if the album is not popular and should be recommended
         if not is_popular:
             is_recommended = True
             for artist_id in artist_ids:
@@ -203,28 +185,50 @@ def fetch_and_cache_data(user_email):
                 if str(album['_id']) not in added_to_new_releases:
                     recommended_for_today.append(album_info)
 
-    # Cache the data for this user with the current timestamp
     user_cache[user_email] = {
         "data": {
             "popularAlbums": random.sample(popular_albums, min(10, len(popular_albums))),
             "singles": random.sample(singles, min(10, len(singles))),
             "recommendedForToday": random.sample(recommended_for_today, min(10, len(recommended_for_today))),
             "newReleases": random.sample(new_releases, min(10, len(new_releases))),
-            "favoriteArtists": favorite_artist_info
+            # "favoriteArtists": favorite_artist_info
         },
         "timestamp": time.time()
     }
 
     return user_cache[user_email]["data"]
 
+@app.route('/api/favorite_artists/<user_email>', methods=['GET'])
+def get_favorite_artists(user_email):
+    try:
+        user = users_collection.find_one({'email': user_email})
+        if not user:
+             jsonify({"error": "User not found"}), 404
+
+        favorite_artist_ids = user.get('favoriteArtists', [])
+
+        favorite_artists = artists_collection.find({'_id': {'$in': favorite_artist_ids}})
+        favorite_artist_info = [
+            {
+                "id": str(artist['_id']),
+                "name": artist['artistName'],
+                "image": artist.get('artistImage', "default_image_url"),
+            }
+            for artist in favorite_artists
+        ]
+
+        return jsonify(favorite_artist_info)
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"error": f"An error occurred while fetching data: {str(e)}"}), 500
+
+
 @app.route('/api/popular_albums/<user_email>', methods=['GET'])
 def get_popular_albums(user_email):
     try:
-        # Check if the cache is still valid for the given user
         if is_cache_valid(user_email):
             return jsonify(user_cache[user_email]["data"])
 
-        # If the cache is invalid, fetch fresh data and cache it for the user
         data = fetch_and_cache_data(user_email)
         return jsonify(data)
 
@@ -260,27 +264,20 @@ def get_top_artists(artist_frequency):
 def fetch_artists_and_playcount():
     try:
         artists = artists_collection.find({}, {'_id': 1, 'artistName': 1, 'playCount': 1})
-        
         artist_dict = {}
 
-        # Iterate through the cursor and populate the dictionary
         for artist in artists:
             artist_dict[artist['artistName']] = artist['playCount']
 
-        # Sort the artists by play count in descending order
         sorted_artists = sorted(artist_dict.items(), key=lambda item: item[1], reverse=True)
-
-        # Select top 5 artists
         top_5_artists = dict(sorted_artists[:5])
 
-        # Calculate the maximum play count for the remaining artists (if any)
         remaining_artists_play_counts = [play_count for name, play_count in sorted_artists[5:]]
         if remaining_artists_play_counts:
             others_play_count = max(remaining_artists_play_counts)
         else:
-            others_play_count = 0  # No remaining artists
+            others_play_count = 0 
 
-        # Add "Others" category if there are any remaining artists
         if others_play_count > 0:
             top_5_artists["Others"] = others_play_count
 
@@ -313,12 +310,10 @@ def get_user_logs(user_email):
             if track:
                 track_info = serialize_object_id(track) 
 
-                # Fetch the artist names from the artist IDs
                 artist_ids = track_info.get('artists', [])
 
-                artist_names = get_artist_names_by_ids(artist_ids)  # Get artist names by their IDs
+                artist_names = get_artist_names_by_ids(artist_ids) 
                 
-                # Update the frequency count for each artist
                 for artist_name in artist_names:
                     if artist_name in artist_frequency:
                         artist_frequency[artist_name] += 1
@@ -330,7 +325,6 @@ def get_user_logs(user_email):
 
                 day_diff = (current_date - listened_date).days
 
-                # Categorize the date
                 if day_diff == 0:
                     day_key = 'Today'
                 elif day_diff == 1:
